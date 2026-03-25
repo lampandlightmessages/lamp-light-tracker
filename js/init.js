@@ -86,8 +86,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-settings-close').addEventListener('click', closeSettings);
   document.getElementById('settings-overlay').addEventListener('click', closeSettings);
 
-  // ── Nav ─────────────────────────────────────────────────────
+  // ── Nav (top + bottom) ──────────────────────────────────────
   document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
+  document.querySelectorAll('.bottom-nav__btn').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
 
   // ── Ideas ───────────────────────────────────────────────────
   document.querySelectorAll('.filter-btn').forEach(b => b.addEventListener('click', () => {
