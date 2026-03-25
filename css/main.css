@@ -177,6 +177,8 @@ body.focus-mode .editor-meta{width:0;opacity:0;padding:0;overflow:hidden;pointer
 body.focus-mode .editor-topbar{height:0;opacity:0;padding:0;overflow:hidden;pointer-events:none;border:none;}
 body.focus-mode .editor-title-wrap{padding-top:3.5rem;}
 body.focus-mode .focus-exit-hint{display:flex!important;}
+body.focus-mode .editor-content{max-width:100%;}
+body.focus-mode .editor-body-wrap{padding-left:2rem;padding-right:2rem;}
 .focus-exit-hint{display:none;position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:rgba(20,27,36,0.9);border:1px solid var(--border);border-radius:20px;padding:0.4rem 1rem;font-size:0.74rem;color:var(--text-muted);letter-spacing:0.04em;z-index:50;backdrop-filter:blur(8px);gap:0.4rem;align-items:center;animation:fadeIn 0.4s ease 0.6s both;}
 .focus-exit-hint kbd{background:var(--bg-card);border:1px solid var(--border-light);border-radius:4px;padding:0.05rem 0.35rem;font-size:0.7rem;font-family:monospace;color:var(--text-secondary);}
 
@@ -216,6 +218,8 @@ body.recording-mode #page-rtr-detail{min-height:100vh;}
 body.recording-mode .rtr-detail-bar{height:0;opacity:0;padding:0;overflow:hidden;pointer-events:none;border:none;}
 body.recording-mode .rtr-detail-title-wrap{padding-top:3.5rem;}
 body.recording-mode .rtr-exit-hint{display:flex!important;}
+body.recording-mode .rtr-content{max-width:100%;}
+body.recording-mode .rtr-body-wrap{padding-left:2rem;padding-right:2rem;}
 .rtr-exit-hint{display:none;position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:rgba(20,27,36,0.9);border:1px solid var(--border);border-radius:20px;padding:0.4rem 1rem;font-size:0.74rem;color:var(--text-muted);letter-spacing:0.04em;z-index:50;backdrop-filter:blur(8px);gap:0.4rem;align-items:center;animation:fadeIn 0.4s ease 0.6s both;}
 .rtr-exit-hint kbd{background:var(--bg-card);border:1px solid var(--border-light);border-radius:4px;padding:0.05rem 0.35rem;font-size:0.7rem;font-family:monospace;color:var(--text-secondary);}
 .record-light{display:none;position:fixed;top:1.1rem;right:1.25rem;align-items:center;gap:0.5rem;z-index:60;animation:fadeIn 0.4s ease 0.3s both;}
