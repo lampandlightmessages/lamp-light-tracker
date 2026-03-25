@@ -1,163 +1,402 @@
-// ── Helpers ──────────────────────────────────────────────────
-function starsHTML(r) {
-  return [1,2,3].map(i => `<span class="star ${i<=r?'filled':''}">${i<=r?'&#9733;':'&#9734;'}</span>`).join('');
-}
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
-}
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function countWords(html) {
-  const txt = html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
-  return txt ? txt.split(' ').filter(w=>w.length>0).length : 0;
-}
-function parseMmSs(val) {
-  const m = String(val).trim().match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return null;
-  return parseInt(m[1])*60 + parseInt(m[2]);
-}
-function calcWpm(words, totalSecs) {
-  if (!words || !totalSecs) return null;
-  return Math.round(words / (totalSecs / 60));
-}
-function showToast(msg, type='info') {
-  let t = document.getElementById('toast');
-  if (!t) {
-    t = document.createElement('div');
-    t.id = 'toast';
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.className = 'toast toast--' + type + ' toast--visible';
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.remove('toast--visible'), 3000);
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#c9a84c" />
+  <title>Lamp & Light | Video Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
 
-// ── Routing ──────────────────────────────────────────────────
-const NAV_MAP = {
-  'ideas':'ideas','add-idea':'ideas','idea-detail':'ideas',
-  'wip':'wip','wip-editor':'wip',
-  'ready':'ready','rtr-detail':'ready',
-  'recorded':'recorded','recorded-detail':'recorded',
-  'overview':'overview'
-};
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <svg class="auth-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L9 8H3L8 12.5L6 19L12 15L18 19L16 12.5L21 8H15L12 2Z" fill="currentColor"/>
+        </svg>
+        <h1 class="auth-title">Lamp &amp; Light</h1>
+        <p class="auth-subtitle">Video Tracker</p>
+      </div>
+      <div id="auth-error" class="auth-error" style="display:none;"></div>
+      <div class="field-group">
+        <label class="field-label" for="auth-email">Email</label>
+        <input type="email" id="auth-email" class="field-input" placeholder="you@example.com" />
+      </div>
+      <div class="field-group">
+        <label class="field-label" for="auth-password">Password</label>
+        <input type="password" id="auth-password" class="field-input" placeholder="••••••••" />
+      </div>
+      <button class="btn-primary" id="btn-sign-in" style="width:100%;">Sign In</button>
+      <button class="auth-toggle-btn" id="btn-toggle-auth">Don't have an account? Sign Up</button>
+    </div>
+  </div>
 
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const t = document.getElementById('page-'+id);
-  if (t) t.classList.add('active');
-  const nk = NAV_MAP[id] || id;
-  // Update top nav
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === nk));
-  // Update bottom nav
-  document.querySelectorAll('.bottom-nav__btn').forEach(b => b.classList.toggle('active', b.dataset.page === nk));
-  document.getElementById('btn-add-idea').classList.toggle('visible', id==='ideas');
-  document.getElementById('btn-add-wip').classList.toggle('visible', id==='wip');
-  window.scrollTo(0, 0);
-  if (id === 'overview') renderOverview();
-}
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen">
+    <div class="loading-inner">
+      <svg class="loading-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L9 8H3L8 12.5L6 19L12 15L18 19L16 12.5L21 8H15L12 2Z" fill="currentColor"/>
+      </svg>
+      <p class="loading-text">Loading...</p>
+    </div>
+  </div>
 
-// ── Settings drawer ──────────────────────────────────────────
-function openSettings() {
-  document.getElementById('settings-overlay').classList.add('open');
-  document.getElementById('settings-drawer').classList.add('open');
-  document.getElementById('btn-hamburger').classList.add('open');
-}
-function closeSettings() {
-  document.getElementById('settings-overlay').classList.remove('open');
-  document.getElementById('settings-drawer').classList.remove('open');
-  document.getElementById('btn-hamburger').classList.remove('open');
-}
+  <!-- MAIN APP (hidden until authenticated) -->
+  <div id="main-app" style="display:none;">
 
-// ── Export ───────────────────────────────────────────────────
-async function exportData() {
-  try {
-    await Storage.exportAll();
-    showToast('Backup downloaded.', 'success');
-  } catch(e) {
-    showToast('Export failed: ' + e.message, 'error');
-  }
-}
+    <header class="top-bar">
+      <div class="top-bar__brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L9 8H3L8 12.5L6 19L12 15L18 19L16 12.5L21 8H15L12 2Z" fill="currentColor"/>
+        </svg>
+        <span class="brand-name">Lamp &amp; Light</span>
+      </div>
+      <nav class="top-bar__nav">
+        <button class="nav-btn active" data-page="ideas">Video Ideas</button>
+        <button class="nav-btn" data-page="wip">Work in Progress</button>
+        <button class="nav-btn" data-page="ready">Ready to Record</button>
+        <button class="nav-btn" data-page="recorded">Recorded</button>
+        <button class="nav-btn" data-page="overview">Overview</button>
+      </nav>
+      <button class="hamburger" id="btn-hamburger" title="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </header>
 
-// ── Auth ─────────────────────────────────────────────────────
-let authMode = 'signin'; // or 'signup'
+    <div class="settings-overlay" id="settings-overlay"></div>
+    <aside class="settings-drawer" id="settings-drawer">
+      <div class="settings-drawer__header">
+        <span class="settings-drawer__title">Settings</span>
+        <button class="settings-close" id="btn-settings-close">&#x2715;</button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-section-label">Editing Behavior</div>
+        <div class="settings-row">
+          <div class="settings-row__info">
+            <div class="settings-row__label">Return to list after saving</div>
+            <div class="settings-row__desc">When on, Save Changes returns you to the ideas list. When off, you stay on the edit page.</div>
+          </div>
+          <label class="toggle"><input type="checkbox" id="setting-return-on-save" checked /><div class="toggle-track"></div></label>
+        </div>
+        <div class="settings-section-label" style="margin-top:1.5rem;">Data</div>
+        <div class="settings-row">
+          <div class="settings-row__info">
+            <div class="settings-row__label">Backup Data</div>
+            <div class="settings-row__desc">Download all your data as a JSON file.</div>
+          </div>
+          <button class="btn-primary" onclick="exportData()" style="font-size:0.75rem;padding:0.4rem 0.9rem;">Export</button>
+        </div>
+        <div class="settings-section-label" style="margin-top:1.5rem;">Account</div>
+        <div class="settings-row">
+          <div class="settings-row__info">
+            <div class="settings-row__label">Sign Out</div>
+            <div class="settings-row__desc">Sign out of your account on this device.</div>
+          </div>
+          <button class="btn-delete" onclick="signOut()" style="white-space:nowrap;">Sign Out</button>
+        </div>
+      </div>
+    </aside>
 
-function showAuthScreen() {
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('loading-screen').style.display = 'none';
-  document.getElementById('main-app').style.display = 'none';
-}
+    <div class="focus-exit-hint" id="focus-exit-hint">Press <kbd>Esc</kbd> to exit Focus Mode</div>
+    <div class="rtr-exit-hint" id="rtr-exit-hint">Press <kbd>Esc</kbd> to exit Recording Mode</div>
+    <div class="record-light"><div class="record-light__dot"></div><span class="record-light__label">Rec</span></div>
 
-function showApp() {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('loading-screen').style.display = 'none';
-  document.getElementById('main-app').style.display = 'block';
-}
+    <main id="app">
 
-function showLoading() {
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('loading-screen').style.display = 'flex';
-  document.getElementById('main-app').style.display = 'none';
-}
+      <!-- IDEAS LIST -->
+      <section class="page active" id="page-ideas">
+        <div class="page-header"><p class="page-desc">Capture ideas before they fade. Every flame starts with a spark.</p></div>
+        <div class="filter-bar">
+          <span class="filter-label">Filter:</span>
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="3"><span class="star filled">&#9733;</span><span class="star filled">&#9733;</span><span class="star filled">&#9733;</span></button>
+          <button class="filter-btn" data-filter="2"><span class="star filled">&#9733;</span><span class="star filled">&#9733;</span></button>
+          <button class="filter-btn" data-filter="1"><span class="star filled">&#9733;</span></button>
+        </div>
+        <div class="ideas-list" id="ideas-list"></div>
+        <div class="empty-state" id="ideas-empty"><div class="empty-icon">&#128161;</div><p>No ideas yet. Tap <strong>+</strong> to add your first one.</p></div>
+        <button class="fab" id="btn-add-idea">+</button>
+      </section>
 
-async function signOut() {
-  await sb.auth.signOut();
-  closeSettings();
-  showAuthScreen();
-}
+      <!-- ADD IDEA -->
+      <section class="page" id="page-add-idea">
+        <div class="form-page">
+          <button class="back-btn" id="btn-back-from-add">&#8592; Back to Ideas</button>
+          <h2 class="form-title">New Video Idea</h2>
+          <div class="field-group"><label class="field-label" for="idea-title">Title</label><input type="text" id="idea-title" class="field-input" placeholder="What's this video about?" /></div>
+          <div class="field-group"><label class="field-label" for="idea-notes">Notes</label><textarea id="idea-notes" class="field-textarea" placeholder="Key points, scripture references, angles to explore..."></textarea></div>
+          <div class="field-group">
+            <label class="field-label">Rating</label>
+            <div class="rating-picker" id="add-rating-picker">
+              <button class="rating-opt" data-val="1"><span class="star filled">&#9733;</span><span class="rating-opt-label">Possibility</span></button>
+              <button class="rating-opt" data-val="2"><span class="star filled">&#9733;</span><span class="star filled">&#9733;</span><span class="rating-opt-label">Strong Idea</span></button>
+              <button class="rating-opt selected" data-val="3"><span class="star filled">&#9733;</span><span class="star filled">&#9733;</span><span class="star filled">&#9733;</span><span class="rating-opt-label">Must Do</span></button>
+            </div>
+          </div>
+          <button class="btn-primary" id="btn-save-idea">Save Idea</button>
+        </div>
+      </section>
 
-// ── ZOOM ─────────────────────────────────────────────────────
-const ZOOM_LEVELS = ['font-sm','font-md','font-lg','font-xl','font-xxl'];
-const ZOOM_LABELS = ['70%','100%','120%','145%','175%'];
-const ZOOM_DEFAULT = 1; // index into ZOOM_LEVELS (font-md = 100%)
+      <!-- IDEA DETAIL -->
+      <section class="page" id="page-idea-detail">
+        <div class="form-page">
+          <div class="detail-actions-top">
+            <button class="back-btn" id="btn-back-from-detail">&#8592; Back to Ideas</button>
+            <button class="btn-delete" id="btn-delete-idea">Delete</button>
+          </div>
+          <span class="detail-date" id="detail-date-display"></span>
+          <div class="field-group"><label class="field-label" for="detail-title-input">Title</label><input type="text" id="detail-title-input" class="field-input" /></div>
+          <div class="field-group"><label class="field-label" for="detail-notes-input">Notes</label><textarea id="detail-notes-input" class="field-textarea" placeholder="Key points, scripture references, angles to explore..."></textarea></div>
+          <div class="field-group">
+            <label class="field-label">Rating</label>
+            <div class="rating-picker" id="detail-rating-picker">
+              <button class="rating-opt" data-val="1"><span class="star filled">&#9733;</span><span class="rating-opt-label">Possibility</span></button>
+              <button class="rating-opt" data-val="2"><span class="star filled">&#9733;</span><span class="star filled">&#9733;</span><span class="rating-opt-label">Strong Idea</span></button>
+              <button class="rating-opt" data-val="3"><span class="star filled">&#9733;</span><span class="star filled">&#9733;</span><span class="star filled">&#9733;</span><span class="rating-opt-label">Must Do</span></button>
+            </div>
+          </div>
+          <div class="detail-save-row">
+            <button class="btn-save-confirm" id="btn-save-detail">Save Changes</button>
+            <span class="save-hint" id="detail-save-hint"></span>
+          </div>
+          <div style="margin-top:1.5rem;"><button class="btn-promote" id="btn-promote-idea">Move to Work in Progress &#8594;</button></div>
+        </div>
+      </section>
 
-let wipZoom = parseInt(localStorage.getItem('ll_wip_zoom') ?? ZOOM_DEFAULT);
-let rtrZoom = parseInt(localStorage.getItem('ll_rtr_zoom') ?? ZOOM_DEFAULT);
+      <!-- WIP LIST -->
+      <section class="page" id="page-wip">
+        <div class="page-header"><p class="page-desc">Documents in active development. Write, research, and refine.</p></div>
+        <div class="wip-list" id="wip-list"></div>
+        <div class="empty-state" id="wip-empty"><div class="empty-icon">&#128221;</div><p>No documents yet. Promote an idea or tap <strong>+</strong> to start fresh.</p></div>
+        <button class="fab" id="btn-add-wip">+</button>
+      </section>
 
-function applyZoom(target, idx) {
-  const bodyEl = target === 'wip'
-    ? document.getElementById('editor-body-wrap')
-    : document.getElementById('rtr-body-wrap') || document.querySelector('.rtr-body-wrap');
+      <!-- WIP EDITOR -->
+      <section class="page" id="page-wip-editor">
+        <div class="editor-shell">
+          <aside class="editor-meta" id="editor-meta">
+            <div class="editor-meta__section">
+              <span class="editor-meta__label">Status</span>
+              <select class="meta-input meta-select" id="meta-status">
+                <option value="drafting">Drafting</option>
+                <option value="researching">Researching</option>
+                <option value="reviewing">Reviewing</option>
+                <option value="void">Void</option>
+              </select>
+            </div>
+            <div class="editor-meta__section">
+              <span class="editor-meta__label">Target Date</span>
+              <input type="date" class="meta-input" id="meta-date" />
+            </div>
+            <div class="editor-meta__section">
+              <span class="editor-meta__label">Series / Category</span>
+              <input type="text" class="meta-input" id="meta-series" placeholder="e.g. Apologetics, Q&amp;A..." />
+            </div>
+            <div class="editor-meta__section" id="meta-linked-wrap" style="display:none;">
+              <span class="editor-meta__label">From Idea</span>
+              <div class="meta-linked" id="meta-linked-title"></div>
+              <div id="meta-linked-notes-wrap" style="display:none;margin-top:0.5rem;">
+                <span class="editor-meta__label" style="margin-top:0.75rem;">Idea Notes</span>
+                <div class="meta-linked" id="meta-linked-notes" style="white-space:pre-wrap;font-style:normal;font-size:0.78rem;line-height:1.5;max-height:200px;overflow-y:auto;"></div>
+              </div>
+            </div>
+            <div class="editor-meta__section" style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
+              <button class="btn-promote" onclick="promoteToReady()" style="width:100%;text-align:center;font-size:0.75rem;padding:0.5rem;">Move to Ready to Record &#8594;</button>
+            </div>
+          </aside>
+          <div class="editor-main">
+            <div class="editor-topbar" id="editor-topbar">
+              <button class="editor-back" id="btn-back-from-editor">&#8592; WIP</button>
+              <div class="editor-topbar-divider"></div>
+              <button class="toolbar-btn" data-cmd="bold"><strong>B</strong></button>
+              <button class="toolbar-btn" data-cmd="italic"><em>I</em></button>
+              <button class="toolbar-btn" data-cmd="underline"><u>U</u></button>
+              <div class="toolbar-sep"></div>
+              <button class="toolbar-btn" data-cmd="h1">H1</button>
+              <button class="toolbar-btn" data-cmd="h2">H2</button>
+              <button class="toolbar-btn" data-cmd="h3">H3</button>
+              <div class="toolbar-sep"></div>
+              <button class="toolbar-btn" data-cmd="ul">&#8226;&#8212;</button>
+              <button class="toolbar-btn" data-cmd="ol">1&#8212;</button>
+              <div class="toolbar-spacer"></div>
+              <div class="autosave-indicator" id="autosave-indicator"><div class="dot"></div><span id="autosave-text">Saved</span></div>
+              <div class="editor-topbar-divider"></div>
+              <button class="btn-delete" onclick="deleteCurrentWip()">Delete</button>
+              <div class="editor-topbar-divider"></div>
+              <button class="focus-btn" id="btn-focus-mode">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                Focus Mode
+              </button>
+              <div class="editor-topbar-divider"></div>
+              <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomOut('wip')" title="Decrease font size">&#8722;</button>
+                <span class="zoom-level" id="wip-zoom-label">100%</span>
+                <button class="zoom-btn" onclick="zoomIn('wip')" title="Increase font size">&#43;</button>
+              </div>
+            </div>
+            <div class="editor-title-wrap"><input type="text" class="editor-title-input" id="editor-title" placeholder="Document title..." /></div>
+            <div class="editor-body-wrap"><div class="editor-content" id="editor-content" contenteditable="true" data-placeholder="Start writing..."></div></div>
+          </div>
+        </div>
+      </section>
 
-  if (!bodyEl) return;
+      <!-- READY TO RECORD LIST -->
+      <section class="page" id="page-ready">
+        <div class="page-header"><p class="page-desc">Polished and ready. Step up to the mic.</p></div>
+        <div class="rtr-list" id="rtr-list"></div>
+        <div class="empty-state" id="rtr-empty"><div class="empty-icon">&#127908;</div><p>Nothing here yet. Promote a document from Work in Progress when it's ready.</p></div>
+      </section>
 
-  // Remove all zoom classes then apply current
-  ZOOM_LEVELS.forEach(cls => bodyEl.classList.remove(cls));
-  bodyEl.classList.add(ZOOM_LEVELS[idx]);
+      <!-- RTR DETAIL -->
+      <section class="page" id="page-rtr-detail">
+        <div class="rtr-detail-bar" id="rtr-detail-bar">
+          <button class="btn-return-wip" onclick="showPage('ready')" style="border-color:var(--border);">&#8592; Back to List</button>
+          <button class="btn-return-wip" onclick="returnToWip()">&#8617; Return to WIP</button>
+          <div style="flex:1;"></div>
+          <div class="zoom-controls" style="margin-right:0.5rem;">
+            <button class="zoom-btn" onclick="zoomOut('rtr')" title="Decrease font size">&#8722;</button>
+            <span class="zoom-level" id="rtr-zoom-label">100%</span>
+            <button class="zoom-btn" onclick="zoomIn('rtr')" title="Increase font size">&#43;</button>
+          </div>
+          <button class="btn-record" onclick="toggleRecordingMode()">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="8"/></svg>
+            Record
+          </button>
+        </div>
+        <div class="rtr-detail-title-wrap"><div class="rtr-detail-title" id="rtr-detail-title"></div></div>
+        <div class="rtr-body-wrap">
+          <div class="rtr-content" id="rtr-detail-content"></div>
+          <div style="margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border);">
+            <button class="btn-promote" onclick="markAsRecorded()" style="font-size:0.8rem;">&#10003; Mark as Recorded &#8594;</button>
+          </div>
+        </div>
+      </section>
 
-  // Update label
-  const labelEl = document.getElementById(target + '-zoom-label');
-  if (labelEl) labelEl.textContent = ZOOM_LABELS[idx];
-}
+      <!-- RECORDED LIST -->
+      <section class="page" id="page-recorded">
+        <div class="page-header"><p class="page-desc">The archive. Every video you've brought to life.</p></div>
+        <div class="recorded-search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" class="recorded-search" id="recorded-search" placeholder="Search by title, series, or date..." />
+        </div>
+        <div class="recorded-list" id="recorded-list"></div>
+        <div class="empty-state" id="recorded-empty"><div class="empty-icon">&#127909;</div><p>No recorded videos yet. Mark a video as recorded from the Ready to Record page.</p></div>
+      </section>
 
-function zoomIn(target) {
-  if (target === 'wip') {
-    wipZoom = Math.min(wipZoom + 1, ZOOM_LEVELS.length - 1);
-    localStorage.setItem('ll_wip_zoom', wipZoom);
-    applyZoom('wip', wipZoom);
-  } else {
-    rtrZoom = Math.min(rtrZoom + 1, ZOOM_LEVELS.length - 1);
-    localStorage.setItem('ll_rtr_zoom', rtrZoom);
-    applyZoom('rtr', rtrZoom);
-  }
-}
+      <!-- RECORDED DETAIL -->
+      <section class="page" id="page-recorded-detail">
+        <div class="form-page" style="max-width:100%;">
+          <div class="detail-actions-top">
+            <button class="back-btn" id="btn-back-from-recorded-detail">&#8592; Back to Recorded</button>
+            <button class="btn-delete" onclick="deleteCurrentRecorded()">Delete</button>
+          </div>
+          <div class="recorded-detail-layout">
+            <div class="recorded-detail-main">
+              <h2 class="recorded-detail-title" id="recorded-detail-title"></h2>
+              <span class="recorded-detail-date" id="recorded-detail-date"></span>
+              <p class="recorded-notes-label">Notes</p>
+              <div class="recorded-notes-body" id="recorded-detail-notes"></div>
+            </div>
+            <div class="recorded-detail-sidebar">
+              <div class="stats-panel">
+                <div class="stats-panel__title">Video Stats</div>
+                <div class="stat-row">
+                  <span class="stat-row__label">Word Count</span>
+                  <div class="stat-row__value" id="stat-word-count">—</div>
+                  <div class="stat-row__sub">words in notes</div>
+                </div>
+                <hr class="stat-divider" />
+                <div class="stat-row">
+                  <span class="stat-row__label">Video Length</span>
+                  <input type="text" class="stat-input" id="stat-video-length" placeholder="MM:SS" maxlength="5" />
+                  <div class="stat-row__sub" style="margin-top:0.3rem;">Enter as MM:SS</div>
+                </div>
+                <hr class="stat-divider" />
+                <div class="stat-row">
+                  <span class="stat-row__label">Words per Minute</span>
+                  <div class="wpm-display">
+                    <div class="wpm-display__number" id="stat-wpm">—</div>
+                    <div class="wpm-display__label">WPM</div>
+                    <div class="wpm-display__note" id="wpm-note">Enter video length to calculate</div>
+                  </div>
+                </div>
+                <div style="margin-top:1rem;">
+                  <button class="btn-primary" onclick="saveRecordedStats()" style="width:100%;font-size:0.78rem;padding:0.55rem;">Save Stats</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-function zoomOut(target) {
-  if (target === 'wip') {
-    wipZoom = Math.max(wipZoom - 1, 0);
-    localStorage.setItem('ll_wip_zoom', wipZoom);
-    applyZoom('wip', wipZoom);
-  } else {
-    rtrZoom = Math.max(rtrZoom - 1, 0);
-    localStorage.setItem('ll_rtr_zoom', rtrZoom);
-    applyZoom('rtr', rtrZoom);
-  }
-}
+      <!-- OVERVIEW -->
+      <section class="page" id="page-overview">
+        <div class="page-header"><p class="page-desc">A snapshot of your entire content pipeline.</p></div>
+        <h2 class="overview-section-title">Pipeline</h2>
+        <div class="overview-pipeline">
+          <div class="pipeline-card" data-page-link="ideas"><div class="pipeline-card__icon">&#128161;</div><div class="pipeline-card__count" id="ov-count-ideas">0</div><div class="pipeline-card__label">Video Ideas</div><div class="pipeline-card__bar"><div class="pipeline-card__bar-fill ideas-fill" id="ov-bar-ideas"></div></div></div>
+          <div class="pipeline-arrow">&#8594;</div>
+          <div class="pipeline-card" data-page-link="wip"><div class="pipeline-card__icon">&#128221;</div><div class="pipeline-card__count" id="ov-count-wip">0</div><div class="pipeline-card__label">Work in Progress</div><div class="pipeline-card__bar"><div class="pipeline-card__bar-fill wip-fill" id="ov-bar-wip"></div></div></div>
+          <div class="pipeline-arrow">&#8594;</div>
+          <div class="pipeline-card" data-page-link="ready"><div class="pipeline-card__icon">&#127908;</div><div class="pipeline-card__count" id="ov-count-rtr">0</div><div class="pipeline-card__label">Ready to Record</div><div class="pipeline-card__bar"><div class="pipeline-card__bar-fill rtr-fill" id="ov-bar-rtr"></div></div></div>
+          <div class="pipeline-arrow">&#8594;</div>
+          <div class="pipeline-card" data-page-link="recorded"><div class="pipeline-card__icon">&#127909;</div><div class="pipeline-card__count" id="ov-count-recorded">0</div><div class="pipeline-card__label">Recorded</div><div class="pipeline-card__bar"><div class="pipeline-card__bar-fill recorded-fill" id="ov-bar-recorded"></div></div></div>
+        </div>
+        <h2 class="overview-section-title" style="margin-top:2.5rem;">Averages Across Recorded Videos</h2>
+        <div class="overview-stats" id="ov-stats-wrap">
+          <div class="overview-stat-card"><div class="overview-stat-card__label">Avg Word Count</div><div class="overview-stat-card__value" id="ov-avg-words">&#8212;</div><div class="overview-stat-card__sub">words per video</div></div>
+          <div class="overview-stat-card"><div class="overview-stat-card__label">Avg Duration</div><div class="overview-stat-card__value" id="ov-avg-duration">&#8212;</div><div class="overview-stat-card__sub">minutes per video</div></div>
+          <div class="overview-stat-card"><div class="overview-stat-card__label">Avg WPM</div><div class="overview-stat-card__value" id="ov-avg-wpm">&#8212;</div><div class="overview-stat-card__sub">words per minute</div></div>
+        </div>
+        <div class="ov-no-stats" id="ov-no-stats" style="display:none;"><p>No recorded videos with stats yet. Stats will appear here once you log video length on recorded entries.</p></div>
+      </section>
 
-function initZoom() {
-  wipZoom = parseInt(localStorage.getItem('ll_wip_zoom') ?? ZOOM_DEFAULT);
-  rtrZoom = parseInt(localStorage.getItem('ll_rtr_zoom') ?? ZOOM_DEFAULT);
-  applyZoom('wip', wipZoom);
-  applyZoom('rtr', rtrZoom);
-}
+
+    <!-- BOTTOM NAV (mobile only) -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <div class="bottom-nav__items">
+        <button class="bottom-nav__btn active" data-page="ideas">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14zm0 16v4m-4 0h8"/></svg>
+          <span class="bottom-nav__label">Ideas</span>
+        </button>
+        <button class="bottom-nav__btn" data-page="wip">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <span class="bottom-nav__label">WIP</span>
+        </button>
+        <button class="bottom-nav__btn" data-page="ready">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          <span class="bottom-nav__label">Ready</span>
+        </button>
+        <button class="bottom-nav__btn" data-page="recorded">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span class="bottom-nav__label">Recorded</span>
+        </button>
+        <button class="bottom-nav__btn" data-page="overview">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          <span class="bottom-nav__label">Overview</span>
+        </button>
+      </div>
+    </nav>
+    </main>
+  </div><!-- /main-app -->
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/ideas.js"></script>
+  <script src="js/wip.js"></script>
+  <script src="js/ready.js"></script>
+  <script src="js/recorded.js"></script>
+  <script src="js/overview.js"></script>
+  <script src="js/init.js"></script>
+  <script src="js/sw-register.js"></script>
+</body>
+</html>
