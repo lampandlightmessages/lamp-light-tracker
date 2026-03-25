@@ -158,7 +158,7 @@ body{background:var(--bg-deep);color:var(--text-primary);font-family:var(--font-
 .editor-title-input{width:100%;background:transparent;border:none;outline:none;font-family:var(--font-display);font-size:1.7rem;font-weight:600;color:var(--text-primary);letter-spacing:0.02em;line-height:1.3;}
 .editor-title-input::placeholder{color:var(--text-muted);}
 .editor-body-wrap{flex:1;overflow-y:auto;padding:1.5rem 2rem 4rem;}
-.editor-content{outline:none;min-height:400px;font-family:var(--font-editor);font-size:1rem;line-height:1.85;color:var(--text-primary);max-width:700px;}
+.editor-content{outline:none;min-height:400px;font-family:var(--font-editor);font-size:1rem;line-height:1.85;color:var(--text-primary);max-width:100%;}
 .editor-content:empty::before{content:attr(data-placeholder);color:var(--text-muted);font-style:italic;pointer-events:none;}
 .editor-content h1{font-family:var(--font-display);font-size:1.5rem;color:var(--gold);margin:1.5rem 0 0.5rem;line-height:1.3;font-weight:600;}
 .editor-content h2{font-family:var(--font-display);font-size:1.2rem;color:var(--gold-light);margin:1.25rem 0 0.4rem;line-height:1.3;}
@@ -201,7 +201,7 @@ body.focus-mode .editor-body-wrap{padding-left:2rem;padding-right:2rem;}
 .rtr-detail-title-wrap{padding:1.5rem 2rem 0.6rem;border-bottom:1px solid var(--border);flex-shrink:0;}
 .rtr-detail-title{font-family:var(--font-display);font-size:1.7rem;font-weight:600;color:var(--text-primary);letter-spacing:0.02em;line-height:1.3;}
 .rtr-body-wrap{flex:1;overflow-y:auto;padding:1.5rem 2rem 4rem;}
-.rtr-content{font-family:var(--font-editor);font-size:1rem;line-height:1.85;color:var(--text-primary);max-width:700px;}
+.rtr-content{font-family:var(--font-editor);font-size:1rem;line-height:1.85;color:var(--text-primary);max-width:100%;}
 .rtr-content h1{font-family:var(--font-display);font-size:1.5rem;color:var(--gold);margin:1.5rem 0 0.5rem;line-height:1.3;font-weight:600;}
 .rtr-content h2{font-family:var(--font-display);font-size:1.2rem;color:var(--gold-light);margin:1.25rem 0 0.4rem;line-height:1.3;}
 .rtr-content h3{font-family:var(--font-body);font-size:0.95rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.07em;margin:1.1rem 0 0.35rem;}
@@ -402,3 +402,36 @@ body.recording-mode .record-light{display:flex;}
   .page { padding: 1.25rem 1rem 1rem; }
   .bottom-nav__label { font-size: 0.52rem; }
 }
+
+/* ── ZOOM CONTROLS ── */
+.zoom-controls {
+  display: flex; align-items: center; gap: 0.25rem;
+}
+.zoom-btn {
+  background: none; border: 1px solid var(--border); color: var(--text-muted);
+  width: 26px; height: 26px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: 1rem; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.2s, border-color 0.2s; flex-shrink: 0;
+}
+.zoom-btn:hover { color: var(--gold); border-color: var(--gold-dim); }
+.zoom-level {
+  font-size: 0.68rem; color: var(--text-muted);
+  min-width: 28px; text-align: center; font-weight: 700;
+}
+
+/* Font size classes applied to content areas */
+.font-sm .editor-content,
+.font-sm .rtr-content  { font-size: 0.85rem; line-height: 1.75; }
+
+.font-md .editor-content,
+.font-md .rtr-content  { font-size: 1rem; line-height: 1.85; }
+
+.font-lg .editor-content,
+.font-lg .rtr-content  { font-size: 1.2rem; line-height: 1.85; }
+
+.font-xl .editor-content,
+.font-xl .rtr-content  { font-size: 1.45rem; line-height: 1.8; }
+
+.font-xxl .editor-content,
+.font-xxl .rtr-content { font-size: 1.75rem; line-height: 1.75; }
