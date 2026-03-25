@@ -297,7 +297,7 @@ body.recording-mode .record-light{display:flex;}
 .overview-stat-card__value{font-family:var(--font-display);font-size:2rem;font-weight:700;color:#34d399;line-height:1;margin-bottom:0.25rem;}
 .overview-stat-card__sub{font-size:0.72rem;color:var(--text-muted);}
 .ov-no-stats{text-align:center;padding:2rem;color:var(--text-muted);font-size:0.88rem;font-style:italic;}
-@media(max-width:600px){.pipeline-arrow{display:none;}.pipeline-card{min-width:calc(50% - 0.5rem);}}`
+@media(max-width:600px){.pipeline-arrow{display:none;}.pipeline-card{min-width:calc(50% - 0.5rem);}}
 /* AUTH SCREEN */
 #auth-screen{display:none;position:fixed;inset:0;background:var(--bg-deep);z-index:999;align-items:center;justify-content:center;padding:1.5rem;}
 #auth-screen[style*="flex"]{display:flex!important;}
@@ -321,3 +321,80 @@ body.recording-mode .record-light{display:flex;}
 .toast--visible{opacity:1;transform:translateX(-50%) translateY(0);}
 .toast--success{border-color:#2d6e4e;color:#7adaaa;}
 .toast--error{border-color:var(--danger);color:#f87171;}
+
+
+/* ══════════════════════════════════════════
+   MOBILE NAV — bottom tab bar
+   Hides the top nav on small screens and
+   replaces it with a fixed bottom tab bar.
+══════════════════════════════════════════ */
+
+/* Bottom nav bar */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  z-index: 100;
+  box-shadow: 0 -2px 20px rgba(0,0,0,0.4);
+}
+.bottom-nav__items {
+  display: flex;
+  height: 100%;
+}
+.bottom-nav__btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.35rem 0.25rem;
+  transition: color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.bottom-nav__btn.active { color: var(--gold); }
+.bottom-nav__btn svg { flex-shrink: 0; }
+.bottom-nav__label {
+  font-family: var(--font-body);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  /* Hide desktop top nav links, keep brand + hamburger */
+  .top-bar__nav { display: none; }
+
+  /* Show bottom nav */
+  .bottom-nav { display: block; }
+
+  /* Push page content up so bottom nav doesn't cover it */
+  #app { padding-bottom: 60px; }
+
+  /* FAB sits above the bottom nav */
+  .fab { bottom: 4.5rem; }
+
+  /* Focus/recording exit hints sit above bottom nav */
+  .focus-exit-hint, .rtr-exit-hint { bottom: 4.5rem; }
+
+  /* WIP editor bottom nav clearance */
+  .editor-body-wrap { padding-bottom: 5rem; }
+
+  /* RTR body clearance */
+  .rtr-body-wrap { padding-bottom: 5rem; }
+}
+
+@media (max-width: 420px) {
+  /* Extra small phones — tighten padding */
+  .page { padding: 1.25rem 1rem 1rem; }
+  .bottom-nav__label { font-size: 0.52rem; }
+}
