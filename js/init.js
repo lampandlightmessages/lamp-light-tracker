@@ -12,6 +12,7 @@ async function bootApp() {
   // Load all data
   await Promise.all([renderIdeas(), renderWips(), renderReadys(), renderRecorded(), renderOverview()]);
 
+  initZoom();
   showPage('ideas');
   showApp();
 }
@@ -121,7 +122,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     try {
       await Storage.saveIdea({ title, notes: document.getElementById('idea-notes').value, rating: addRating });
-      showPage('ideas');
+      initZoom();
+  showPage('ideas');
       await renderIdeas();
     } catch(e) { showToast('Error saving idea', 'error'); }
   });
@@ -147,7 +149,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       await Storage.updateIdea(currentDetailId, { title, notes: document.getElementById('detail-notes-input').value, rating: detailRating });
       await renderIdeas();
       if (document.getElementById('setting-return-on-save').checked) {
-        showPage('ideas');
+        initZoom();
+  showPage('ideas');
       } else {
         const btn = document.getElementById('btn-save-detail'), hint = document.getElementById('detail-save-hint');
         btn.textContent = 'Saved \u2713'; btn.classList.add('saved'); hint.textContent = 'Changes saved.';
@@ -161,7 +164,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (confirm('Delete this idea? This cannot be undone.')) {
       try {
         await Storage.deleteIdea(currentDetailId);
-        showPage('ideas');
+        initZoom();
+  showPage('ideas');
         await renderIdeas();
       } catch(e) { showToast('Delete failed', 'error'); }
     }
