@@ -2,7 +2,7 @@
   "name": "Lamp & Light Video Tracker",
   "short_name": "L&L Tracker",
   "description": "Track video ideas, works in progress, and completed content for Lamp & Light Messages.",
-  "start_url": "/",
+  "start_url": "/lamp-light-tracker/",
   "display": "standalone",
   "background_color": "#0d1117",
   "theme_color": "#c9a84c",
@@ -20,5 +20,6 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "scope": "/lamp-light-tracker/"
 }
