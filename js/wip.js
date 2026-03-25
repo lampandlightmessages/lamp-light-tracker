@@ -44,6 +44,7 @@ async function openWipEditor(id) {
     } else { nw.style.display = 'none'; }
   } else { lw.style.display = 'none'; }
   showPage('wip-editor');
+  if(typeof applyZoom !== 'undefined') applyZoom('wip', wipZoom);
 }
 
 async function newWipDoc(linkedIdeaId=null, titlePrefill='', linkedIdeaTitle='', linkedIdeaNotes='') {
