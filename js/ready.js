@@ -29,6 +29,7 @@ async function openRtrDetail(id) {
   document.getElementById('rtr-detail-title').textContent = doc.title;
   document.getElementById('rtr-detail-content').innerHTML = doc.content || '';
   showPage('rtr-detail');
+  if(typeof applyZoom !== 'undefined') applyZoom('rtr', rtrZoom);
 }
 
 async function returnToWip() {
