@@ -106,3 +106,58 @@ async function signOut() {
   closeSettings();
   showAuthScreen();
 }
+
+// ── ZOOM ─────────────────────────────────────────────────────
+const ZOOM_LEVELS = ['font-sm','font-md','font-lg','font-xl','font-xxl'];
+const ZOOM_LABELS = ['70%','100%','120%','145%','175%'];
+const ZOOM_DEFAULT = 1; // index into ZOOM_LEVELS (font-md = 100%)
+
+let wipZoom = parseInt(localStorage.getItem('ll_wip_zoom') ?? ZOOM_DEFAULT);
+let rtrZoom = parseInt(localStorage.getItem('ll_rtr_zoom') ?? ZOOM_DEFAULT);
+
+function applyZoom(target, idx) {
+  const bodyEl = target === 'wip'
+    ? document.getElementById('editor-body-wrap')
+    : document.getElementById('rtr-body-wrap') || document.querySelector('.rtr-body-wrap');
+
+  if (!bodyEl) return;
+
+  // Remove all zoom classes then apply current
+  ZOOM_LEVELS.forEach(cls => bodyEl.classList.remove(cls));
+  bodyEl.classList.add(ZOOM_LEVELS[idx]);
+
+  // Update label
+  const labelEl = document.getElementById(target + '-zoom-label');
+  if (labelEl) labelEl.textContent = ZOOM_LABELS[idx];
+}
+
+function zoomIn(target) {
+  if (target === 'wip') {
+    wipZoom = Math.min(wipZoom + 1, ZOOM_LEVELS.length - 1);
+    localStorage.setItem('ll_wip_zoom', wipZoom);
+    applyZoom('wip', wipZoom);
+  } else {
+    rtrZoom = Math.min(rtrZoom + 1, ZOOM_LEVELS.length - 1);
+    localStorage.setItem('ll_rtr_zoom', rtrZoom);
+    applyZoom('rtr', rtrZoom);
+  }
+}
+
+function zoomOut(target) {
+  if (target === 'wip') {
+    wipZoom = Math.max(wipZoom - 1, 0);
+    localStorage.setItem('ll_wip_zoom', wipZoom);
+    applyZoom('wip', wipZoom);
+  } else {
+    rtrZoom = Math.max(rtrZoom - 1, 0);
+    localStorage.setItem('ll_rtr_zoom', rtrZoom);
+    applyZoom('rtr', rtrZoom);
+  }
+}
+
+function initZoom() {
+  wipZoom = parseInt(localStorage.getItem('ll_wip_zoom') ?? ZOOM_DEFAULT);
+  rtrZoom = parseInt(localStorage.getItem('ll_rtr_zoom') ?? ZOOM_DEFAULT);
+  applyZoom('wip', wipZoom);
+  applyZoom('rtr', rtrZoom);
+}
