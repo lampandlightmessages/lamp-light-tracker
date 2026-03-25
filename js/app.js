@@ -48,7 +48,10 @@ function showPage(id) {
   const t = document.getElementById('page-'+id);
   if (t) t.classList.add('active');
   const nk = NAV_MAP[id] || id;
+  // Update top nav
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.page === nk));
+  // Update bottom nav
+  document.querySelectorAll('.bottom-nav__btn').forEach(b => b.classList.toggle('active', b.dataset.page === nk));
   document.getElementById('btn-add-idea').classList.toggle('visible', id==='ideas');
   document.getElementById('btn-add-wip').classList.toggle('visible', id==='wip');
   window.scrollTo(0, 0);
